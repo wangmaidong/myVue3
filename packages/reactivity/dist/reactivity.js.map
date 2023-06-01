@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../shared/src/index.ts", "../src/index.ts"],
+  "sourcesContent": ["const a = 1\nexport {\n  a\n} ", "import { a } from '@vue/shared'\nconsole.log(a)"],
+  "mappings": ";AAAA,IAAM,IAAI;;;ACCV,QAAQ,IAAI,CAAC;",
+  "names": []
+}

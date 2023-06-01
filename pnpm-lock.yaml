@@ -36,6 +36,14 @@ importers:
         specifier: ^5.0.4
         version: registry.npmmirror.com/typescript@5.0.4
 
+  packages/reactivity:
+    dependencies:
+      '@vue/shared':
+        specifier: workspace:^
+        version: link:../shared
+
+  packages/shared: {}
+
 packages:
 
   registry.npmmirror.com/@esbuild/android-arm64@0.17.19:
