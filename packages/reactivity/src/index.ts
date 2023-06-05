@@ -1,5 +1,2 @@
-import { a } from '@vue/shared'
-console.log(a)
-export {
-  a
-}
+export * from './effect'
+export * from './reactive'
