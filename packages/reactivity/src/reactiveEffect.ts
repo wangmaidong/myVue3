@@ -21,7 +21,7 @@ export function track(target,key) {
         depsMap.set(key,deps)
     }
     trackEffect(activeEffect, deps)
-    console.log(targetMap)
+    // console.log(targetMap)
 }
 
 export function trigger(target, key, newValue, oldValue) {

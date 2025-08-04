@@ -1,3 +1,5 @@
+import { DirtyLevels } from "./constants"
+
 export function effect(fn, options?) {
     const _effect = new ReactiveEffect(fn, () => {
         _effect.run()
@@ -31,19 +33,29 @@ function cleanDepEffect(dep, effect) {
         dep.cleanup()
     }
 }
-class ReactiveEffect {
+export class ReactiveEffect {
     // 是否正在执行
     _isRunning = 0
     // 每次effect执行时，_trackId都会++
     _trackId = 0
     // 真正记录该effect被多少个属性依赖
     _depsLength = 0
+    // 是否是脏的
+    _dirtyLevel = DirtyLevels.Dirty
     // 记录该effect被多少个属性依赖
     deps = []
     // 是否是激活状态
     public active = true
     constructor(public fn, public scheduler) { }
+    public get dirty() {
+        return this._dirtyLevel === DirtyLevels.Dirty
+    }
+    public set dirty(v) {
+        // 如果v为true，则设置为脏的，否则设置为干净的
+        this._dirtyLevel = (v ? DirtyLevels.Dirty : DirtyLevels.NoDirty)
+    }
     run() {
+        this._dirtyLevel = DirtyLevels.NoDirty
         // 如果当前不是激活状态，则直接执行
         if (!this.active) {
             return this.fn()
@@ -72,7 +84,7 @@ class ReactiveEffect {
 }
 
 export function trackEffect(effect, dep) {
-    // 去除依赖的的重复手机
+    // 去除依赖的的重复收集
     // 比如模板内多次使用同一个变量，会多次收集依赖
     if (dep.get(effect) !== effect._trackId) {
         dep.set(effect, effect._trackId)
@@ -90,6 +102,9 @@ export function trackEffect(effect, dep) {
 }
 export function triggerEffects(deps) {
     for (const effect of deps.keys()) {
+        if(effect._dirtyLevel < DirtyLevels.Dirty) {
+            effect._dirtyLevel = DirtyLevels.Dirty
+        }
         if (!effect._isRunning) {
             if (effect.scheduler) {
                 effect.scheduler()
