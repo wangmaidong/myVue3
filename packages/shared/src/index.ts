@@ -9,3 +9,5 @@ export function isFunction(value) {
 export function isArray(value) {    
     return Array.isArray(value)
 }
+
+export * from './shapeFlags'
