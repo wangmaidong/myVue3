@@ -9,5 +9,10 @@ export function isFunction(value) {
 export function isArray(value) {    
     return Array.isArray(value)
 }
-
+export function isString(value) {
+    return typeof value === "string"
+}
+export function isVnode(value) {
+    return value?.__v_isVnode 
+}
 export * from './shapeFlags'
