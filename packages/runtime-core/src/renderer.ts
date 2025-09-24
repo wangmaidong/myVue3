@@ -18,8 +18,8 @@ export function createRenderer(renderOptions) {
             patch(null, children[i], container)
         }
     }
-    const unmountChildren= (children) => {
-        for(let i = 0; i < children.length; i++) {
+    const unmountChildren = (children) => {
+        for (let i = 0; i < children.length; i++) {
             unmount(children[i])
         }
     }
@@ -42,18 +42,45 @@ export function createRenderer(renderOptions) {
         hostInsert(el, container)
     }
     const patchProps = (oldProps, newProps, el) => {
-        for(let key in newProps) {
+        for (let key in newProps) {
             hostPacthProp(el, key, oldProps[key], newProps[key])
         }
-        for(let key in oldProps) {
-            if(!newProps.hasOwnProperty(key)) {
-                hostPacthProp(el, key ,oldProps[key], null)
+        for (let key in oldProps) {
+            if (!newProps.hasOwnProperty(key)) {
+                hostPacthProp(el, key, oldProps[key], null)
             }
         }
     }
+    const patchChildrenByKey = (c1, c2, el) => {
+        let s1 = 0
+        let s2 = 0
+        let i = 0
+        let e1 = c1.length - 1
+        let e2 = c2.length - 1
+        // 先从头部开始比较
+        while (i <= e1 && i <= e2) {
+            if (isSameVnode(c1[i], c2[i])) {
+                patch(c1[i], c2[i], el)
+            } else {
+                break
+            }
+            i++
+        }
+        // 从尾部比较
+        while (e1 >= i && e2 >= i) {
+            if (isSameVnode(c1[e1], c2[e2])) {
+                patch(c1[e1], c2[e2], el)
+            } else {
+                break
+            }
+            e1--, e2--
+        }
+        console.log('头部', s1, s2)
+        console.log('下标', i)
+        console.log('尾部', e1, e2)
 
+    }
     const patchChildren = (n1, n2, el) => {
-        debugger
         // 拿到新旧虚拟节点的子节点
         const c1 = n1.children
         const c2 = n2.children
@@ -61,28 +88,29 @@ export function createRenderer(renderOptions) {
         const preShapeFlag = n1.shapeFlag
         const shapeFlage = n2.shapeFlag
         // 如果新虚拟节点的儿子是文本
-        if(shapeFlage & ShapeFlags.TEXT_CHILDREN) {
+        if (shapeFlage & ShapeFlags.TEXT_CHILDREN) {
             // 旧虚拟节点的儿子是数组
-            if(preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+            if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                 // 删除老儿子，设置文本内容
                 unmountChildren(c1)
             }
-            if(c1 !== c2) {
+            if (c1 !== c2) {
                 hostSetElementText(el, c2)
             }
         } else {
-            if(preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-                if(shapeFlage & ShapeFlags.ARRAY_CHILDREN) {
+            if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+                if (shapeFlage & ShapeFlags.ARRAY_CHILDREN) {
+                    patchChildrenByKey(c1, c2, el)
                     // 如果新旧虚拟节点的儿子都是数组，就要全量diff
                 } else {
                     // 新虚拟节点是空，那就移除老的dom节点
                     unmountChildren(c1)
                 }
             } else {
-                if(preShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+                if (preShapeFlag & ShapeFlags.TEXT_CHILDREN) {
                     hostSetElementText(el, '')
                 }
-                if(shapeFlage & ShapeFlags.ARRAY_CHILDREN) {
+                if (shapeFlage & ShapeFlags.ARRAY_CHILDREN) {
                     mountChildren(c2, el)
                 }
             }
@@ -97,7 +125,7 @@ export function createRenderer(renderOptions) {
             patchElement(n1, n2, container)
         }
     }
-    
+
     const patchElement = (n1, n2, container) => {
         // 1.比较元素的差异，需要复用dom
         // 2.比较元素的属性和子节点
