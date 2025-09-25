@@ -23,7 +23,7 @@ export function createRenderer(renderOptions) {
             unmount(children[i])
         }
     }
-    const mountElement = (vnode, container) => {
+    const mountElement = (vnode, container, ancher = null) => {
         // console.log(vnode)
         const { type, children, props, shapeFlag } = vnode
         // 第一次渲染的时候我们让当前的虚拟节点和真实的dom关联起来
@@ -39,7 +39,7 @@ export function createRenderer(renderOptions) {
         } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
             mountChildren(children, el)
         }
-        hostInsert(el, container)
+        hostInsert(el, container, ancher)
     }
     const patchProps = (oldProps, newProps, el) => {
         for (let key in newProps) {
@@ -51,9 +51,7 @@ export function createRenderer(renderOptions) {
             }
         }
     }
-    const patchChildrenByKey = (c1, c2, el) => {
-        let s1 = 0
-        let s2 = 0
+    const patchKeyChildren = (c1, c2, el) => {
         let i = 0
         let e1 = c1.length - 1
         let e2 = c2.length - 1
@@ -73,11 +71,62 @@ export function createRenderer(renderOptions) {
             } else {
                 break
             }
-            e1--, e2--
+            e1--;
+            e2--
+        }   
+        if (i > e1) {
+            if (i <= e2) {
+                let nextPos = e2 + 1
+                let ancher = c2[nextPos]?.el
+                while (i <= e2) {
+                    patch(null, c2[i], el, ancher)
+                    i++
+                }
+            }
+        } else if (i > e2) {
+            if(i <= e1) {
+                while(i <= e1) {
+                    unmount(c1[i])
+                    i++
+                }
+            }
+        } else {
+            let s1 = i
+            let s2 = i
+            // 根据新的虚拟节点数组中不同的区间创建一个  key : index  组成的map
+            const keyToNewIndexMap = new Map()
+            for(let i = s2; i <= e2; i++) {
+                let key = c2[i].key
+                keyToNewIndexMap.set(key, i)
+            }
+            // 循环老虚拟节点不同的区间
+            for(let i = s1; i <= e1; i++) {
+                let vnode = c1[i]
+                // 按老虚拟节点的key去map里面查找，如果找到了就可以复用老虚拟节点的dom
+                // key在映射表里不存在就要删除
+                let index = keyToNewIndexMap.get(vnode.key)
+                if(!index) {
+                    unmount(vnode)
+                } else {
+                    patch(vnode, c2[index], el)
+                }
+            }
+            // 计算出要倒叙插入的长度
+            let toBePatched = e2 - s2 + 1
+            // 从要倒叙插入的区间的最后一个开始
+            for(let i = toBePatched - 1 ; i >= 0 ; i--) {
+                // 求出要倒叙插叙的最后一个元素在c2中对应的实际索引
+                let newIndex = s2 + i
+                // 取出倒叙插入的节点的上一个节点
+                let ancher = c2[newIndex+1]?.el
+                let vnode = c2[newIndex]
+                if(!vnode.el) {
+                    patch(null, vnode, el, ancher)
+                } else {
+                    hostInsert(vnode.el, el, ancher)
+                }
+            }
         }
-        console.log('头部', s1, s2)
-        console.log('下标', i)
-        console.log('尾部', e1, e2)
 
     }
     const patchChildren = (n1, n2, el) => {
@@ -100,7 +149,7 @@ export function createRenderer(renderOptions) {
         } else {
             if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                 if (shapeFlage & ShapeFlags.ARRAY_CHILDREN) {
-                    patchChildrenByKey(c1, c2, el)
+                    patchKeyChildren(c1, c2, el)
                     // 如果新旧虚拟节点的儿子都是数组，就要全量diff
                 } else {
                     // 新虚拟节点是空，那就移除老的dom节点
@@ -117,9 +166,9 @@ export function createRenderer(renderOptions) {
         }
 
     }
-    const processElement = (n1, n2, container) => {
+    const processElement = (n1, n2, container, ancher) => {
         if (n1 === null) {
-            mountElement(n2, container)
+            mountElement(n2, container, ancher)
         } else {
             // 前后虚拟节点是同一类
             patchElement(n1, n2, container)
@@ -135,7 +184,7 @@ export function createRenderer(renderOptions) {
         patchProps(oldProps, newProps, el)
         patchChildren(n1, n2, el)
     }
-    const patch = (n1, n2, container) => {
+    const patch = (n1, n2, container, ancher = null) => {
         if (n1 == n2) {
             return
         }
@@ -145,7 +194,7 @@ export function createRenderer(renderOptions) {
             unmount(n1)
             n1 = null
         }
-        processElement(n1, n2, container)
+        processElement(n1, n2, container, ancher)
     }
     const unmount = (vnode) => {
         let el = vnode.el
